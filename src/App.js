@@ -9,7 +9,7 @@ import Button from './Components/Button/Button';
 import Modal from './Components/Modal/Modal';
 import fetchImgAPI from './servises/fetchImgAPI';
 
-class App extends Component {
+export default class App extends Component {
     state = {
         images: [],
         currentPage: 1,
@@ -106,5 +106,3 @@ class App extends Component {
         );
     }
 }
-
-export default App;
