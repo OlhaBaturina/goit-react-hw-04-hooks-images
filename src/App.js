@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import s from './App.css';
@@ -7,102 +7,82 @@ import ImageGallery from './Components/ImageGallery/ImageGallery';
 import CustomLoader from './Components/Loader/Loader';
 import Button from './Components/Button/Button';
 import Modal from './Components/Modal/Modal';
-import fetchImgAPI from './servises/fetchImgAPI';
+import { fetchImgAPI } from './servises/useFetch';
 
-export default class App extends Component {
-    state = {
-        images: [],
-        currentPage: 1,
-        searchQuery: '',
-        showModal: false,
-        loading: false,
-        error: null,
-        modalImage: '',
-    };
+export function App() {
+    const [images, setImages] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [modalImage, setModalImage] = useState(1);
+    const [imgSet, setImgSet] = useState([]);
 
-    componentDidUpdate(prevProps, prevState) {
-        if (prevState.searchQuery !== this.state.searchQuery) {
-            this.fetchImgAPI();
-        }
-    }
-
-    onChangeQuery = query => {
-        this.setState({
-            searchQuery: query.trim(),
-            currentPage: 1,
-            images: [],
-            error: null,
-        });
-    };
-
-    fetchImgAPI = () => {
-        const { currentPage, searchQuery } = this.state;
-        const options = { searchQuery, currentPage };
-
+    useEffect(() => {
         if (!searchQuery) {
             return;
         }
 
-        this.setState({ loading: true });
+        fetching();
+    }, [searchQuery]);
 
-        fetchImgAPI
-            .fetchImgAPI(options)
-            .then(hits => {
-                this.setState(prevState => ({
-                    images: [...prevState.images, ...hits],
-                    currentPage: prevState.currentPage + 1,
-                }));
+    const fetching = async () => {
+        setLoading(true);
+        try {
+            const imgsResponse = await fetchImgAPI(searchQuery, currentPage);
+            console.log(imgsResponse);
+            setImages(prevState => [...prevState, ...imgsResponse]);
+            setImgSet(imgsResponse);
+            setCurrentPage(currentPage + 1);
+            setLoading(false);
+            setError(null);
 
-                window.scrollTo({
-                    top: document.documentElement.scrollHeight,
-                    behavior: 'smooth',
-                });
-            })
-            .catch(error => this.setState({ error }))
-            .finally(() => {
-                this.setState({ loading: false });
+            window.scrollTo({
+                top: document.documentElement.scrollHeight,
+                behavior: 'smooth',
             });
+        } catch (error) {
+            setError(error.response);
+            setLoading(false);
+        }
     };
 
-    openModal = largeImageURL => {
-        this.setState({
-            showModal: true,
-            modalImage: largeImageURL,
-        });
+    const onChangeQuery = query => {
+        setSearchQuery(query.trim());
+        setCurrentPage(1);
+        setImages([]);
+        setError(null);
     };
 
-    closeModal = () => {
-        this.setState({
-            showModal: false,
-            modalImage: '',
-        });
+    const openModal = largeImageURL => {
+        setShowModal(true);
+        setModalImage(largeImageURL);
     };
 
-    render() {
-        const { showModal, error, images, loading, modalImage } = this.state;
+    const closeModal = () => {
+        setShowModal(false);
+        setModalImage('');
+    };
 
-        return (
-            <div className={s.App}>
-                <ToastContainer />
-                <Searchbar onSubmit={this.onChangeQuery} />
-                {error ? (
-                    toast.error(`Something went wrong error: ${error}`)
-                ) : (
-                    <ImageGallery images={images} onImgClick={this.openModal} />
-                )}
-                {loading && <CustomLoader />}
-                {images.length > 0 && (
-                    <Button
-                        text={'Load more...'}
-                        onLoadClick={this.fetchImgAPI}
-                    />
-                )}
-                {showModal && (
-                    <Modal closeModal={this.closeModal}>
-                        <img src={modalImage} alt="img" />
-                    </Modal>
-                )}
-            </div>
-        );
-    }
+    return (
+        <div className={s.App}>
+            <ToastContainer />
+            <Searchbar onSubmit={onChangeQuery} />
+            {error ? (
+                toast.error(`Something went wrong error: ${error}`)
+            ) : (
+                <ImageGallery images={images} onImgClick={openModal} />
+            )}
+            {loading && <CustomLoader />}
+            {imgSet.length >= 12 && (
+                <Button text={'Load more...'} onLoadClick={fetching} />
+            )}
+            {showModal && (
+                <Modal closeModal={closeModal}>
+                    <img src={modalImage} alt="img" />
+                </Modal>
+            )}
+        </div>
+    );
 }
