@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import s from './App.css';
@@ -23,7 +23,6 @@ export function App() {
         if (!searchQuery) {
             return;
         }
-
         fetching();
     }, [searchQuery]);
 
